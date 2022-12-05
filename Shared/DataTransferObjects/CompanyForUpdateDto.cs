@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace Shared.DataTransferObjects
 {
-    public record EmployeeDto
+    public record CompanyForUpdateDto
     {
-        public Guid Id { get; set; }
         public string Name { get; set; }
-        public int Age { get; set; }
-        public string Position { get; set; }
+        public string Adress { get; set; }
+        public string Country { get; set; }
+        public IEnumerable<EmployeeForCreationDto> Employees { get; set; }
     }
 }
