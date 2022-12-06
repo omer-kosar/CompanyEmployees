@@ -1,4 +1,5 @@
-﻿using CompanyEmployees.ModelBinders;
+﻿using CompanyEmployees.ActionFilters;
+using CompanyEmployees.ModelBinders;
 using Microsoft.AspNetCore.Mvc;
 using Service.Contracts;
 using Shared.DataTransferObjects;
@@ -29,10 +30,9 @@ namespace CompanyEmployees.Controllers
             return Ok(company);
         }
         [HttpPost]
+        [ServiceFilter(typeof(ValidationFilterAttribute))]
         public async Task<IActionResult> CreateCompany([FromBody] CompanyForCreationDto company)
         {
-            if (company is null) return
-                    BadRequest("Company is null");
             var createdCompany = await _service.CompanyService.CreateCompanyAsync(company);
             return CreatedAtRoute("CompanyById", new { id = createdCompany.Id }, createdCompany);
         }
@@ -55,10 +55,9 @@ namespace CompanyEmployees.Controllers
             return NoContent();
         }
         [HttpPut("{id:guid}")]
+        [ServiceFilter(typeof(ValidationFilterAttribute))]
         public async Task<IActionResult> UpdateCompany(Guid id, [FromBody] CompanyForUpdateDto company)
         {
-            if (company is null)
-                return BadRequest("Company object is null");
             await _service.CompanyService.UpdateCompanyAsync(id, company, true);
             return NoContent();
         }
