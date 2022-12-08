@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Service.Contracts;
 using Shared.DataTransferObjects;
+using Shared.RequestFeatures;
+using System.Text.Json;
 
 namespace CompanyEmployees.Controllers
 {
@@ -15,10 +17,11 @@ namespace CompanyEmployees.Controllers
         private readonly IServiceManager _service;
         public EmployeesController(IServiceManager service) => _service = service;
         [HttpGet]
-        public async Task<IActionResult> GetEmployeesForCompany(Guid companyId)
+        public async Task<IActionResult> GetEmployeesForCompany(Guid companyId, [FromQuery] EmployeeParameters employeeParameters)
         {
-            var employees = await _service.EmployeeService.GetEmployeesAsync(companyId, false);
-            return Ok(employees);
+            var pagedResult = await _service.EmployeeService.GetEmployeesAsync(companyId, employeeParameters, false);
+            Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(pagedResult.metaData));
+            return Ok(pagedResult.employees);
         }
         [HttpGet("{id:guid}", Name = "GetEmployeeForCompany")]
         public async Task<IActionResult> GetEmployeeForCompany(Guid companyId, Guid id)
@@ -34,9 +37,9 @@ namespace CompanyEmployees.Controllers
             return CreatedAtRoute("GetEmployeeForCompany", new { companyId, id = employeeToReturn.Id }, employeeToReturn);
         }
         [HttpDelete("{id:guid}")]
-        public async  Task<IActionResult> DeleteEmployeeForCompany(Guid companyId, Guid id)
+        public async Task<IActionResult> DeleteEmployeeForCompany(Guid companyId, Guid id)
         {
-           await _service.EmployeeService.DeleteEmployeeForCompanyAsync(companyId, id, false);
+            await _service.EmployeeService.DeleteEmployeeForCompanyAsync(companyId, id, false);
             return NoContent();
         }
         [HttpPut("{id:guid}")]
@@ -49,13 +52,14 @@ namespace CompanyEmployees.Controllers
         [HttpPatch("{id:guid}")]
         public async Task<IActionResult> PartiallyUpdateEmployeeForCompany(Guid companyId, Guid id, [FromBody] JsonPatchDocument<EmployeeForUpdateDto> patchDoc)
         {
-            if (patchDoc is null) return BadRequest("patch document object sent from client is null");
+            if (patchDoc is null)
+                return BadRequest("patch document object sent from client is null");
             var result = await _service.EmployeeService.GetEmployeeForPatchAsync(companyId, id, false, true);
             patchDoc.ApplyTo(result.employeeToPatch, ModelState);
             TryValidateModel(result.employeeToPatch);
             if (!ModelState.IsValid)
                 return UnprocessableEntity(ModelState);
-           await _service.EmployeeService.SaveChangesForPatchAsync(result.employeeToPatch, result.employeeEntity);
+            await _service.EmployeeService.SaveChangesForPatchAsync(result.employeeToPatch, result.employeeEntity);
             return NoContent();
         }
     }
