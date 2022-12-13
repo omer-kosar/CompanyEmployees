@@ -1,11 +1,13 @@
 ﻿using CompanyEmployees.ActionFilters;
 using CompanyEmployees.ModelBinders;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service.Contracts;
 using Shared.DataTransferObjects;
 
 namespace CompanyEmployees.Controllers
 {
+    [ApiVersion("1.0")]
     [Route("api/companies")]
     [ApiController]
     public class CompaniesController : ControllerBase
@@ -18,12 +20,14 @@ namespace CompanyEmployees.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<IActionResult> GetCompanies()
         {
             var companies = await _service.CompanyService.GetAllCompaniesAsync(false);
             return Ok(companies);
         }
         [HttpGet("{id:guid}", Name = "CompanyById")]
+        [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetCompany(Guid id)
         {
             var company = await _service.CompanyService.GetCompanyAsync(id, false);

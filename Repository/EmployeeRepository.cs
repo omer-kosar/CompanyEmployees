@@ -34,6 +34,7 @@ namespace Repository
                 .OrderBy(e => e.Name)
                 .Skip((employeeParameters.PageNumber - 1) * employeeParameters.PageSize)
                 .Take(employeeParameters.PageSize)
+                .Sort(employeeParameters.OrderBy)
                 .ToListAsync();
 
             var count = await FindByCondition(e => e.CompanyId.Equals(companyId) && (e.Age >= employeeParameters.MinAge && e.Age <= employeeParameters.MaxAge), trackChanges)
