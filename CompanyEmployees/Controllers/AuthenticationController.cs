@@ -36,7 +36,15 @@ namespace CompanyEmployees.Controllers
         {
             if (!await _service.AuthenticationService.ValidateUser(user))
                 return Unauthorized();
-            return Ok(new { Token = await _service.AuthenticationService.CreateToken() });
+            var tokenDto = await _service.AuthenticationService.CreateToken(true);
+            return Ok(tokenDto);
+        }
+        [HttpPost("refresh")]
+        [ServiceFilter(type: typeof(ValidationFilterAttribute))]
+        public async Task<IActionResult> Refresh([FromBody] TokenDto tokenDto)
+        {
+            var tokenDtoResult = await _service.AuthenticationService.RefreshToken(tokenDto);
+            return Ok(tokenDtoResult);
         }
     }
 }
