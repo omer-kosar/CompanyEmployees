@@ -3,6 +3,7 @@ using Contracts.Logger;
 using Contracts.Repository;
 using Entities.Exceptions;
 using Entities.Models;
+using Entities.Responses;
 using Service.Contracts;
 using Shared.DataTransferObjects;
 using System;
@@ -56,10 +57,11 @@ namespace Service
             await _repository.SaveAsync();
         }
 
-        public async Task<IEnumerable<CompanyDto>> GetAllCompaniesAsync(bool trackChanges)
+        public async Task<ApiBaseResponse> GetAllCompaniesAsync(bool trackChanges)
         {
             var companies = await _repository.Company.GetAllCompaniesAsync(trackChanges);
-            return _mapper.Map<IEnumerable<CompanyDto>>(companies);
+            var companiesDto = _mapper.Map<IEnumerable<CompanyDto>>(companies);
+            return new ApiOkResponse<IEnumerable<CompanyDto>>(companiesDto);
         }
 
         public async Task<IEnumerable<CompanyDto>> GetByIdsAsync(IEnumerable<Guid> ids, bool trackChanges)
@@ -73,10 +75,13 @@ namespace Service
             return companiesToReturn;
         }
 
-        public async Task<CompanyDto> GetCompanyAsync(Guid companyId, bool trackChanges)
+        public async Task<ApiBaseResponse> GetCompanyAsync(Guid companyId, bool trackChanges)
         {
             var company = await GetCompanyByIdAsync(companyId, trackChanges);
-            return _mapper.Map<CompanyDto>(company);
+            if (company is null)
+                return new CompanyNotFoundResponse(companyId);
+            var companyDto = _mapper.Map<CompanyDto>(company);
+            return new ApiOkResponse<CompanyDto>(companyDto);
         }
 
         public async Task UpdateCompanyAsync(Guid companyId, CompanyForUpdateDto companyForUpdateDto, bool trackChanges)

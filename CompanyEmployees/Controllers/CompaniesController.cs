@@ -1,5 +1,7 @@
 ﻿using CompanyEmployees.ActionFilters;
+using CompanyEmployees.Extensions;
 using CompanyEmployees.ModelBinders;
+using Entities.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service.Contracts;
@@ -10,7 +12,8 @@ namespace CompanyEmployees.Controllers
     [ApiVersion("1.0")]
     [Route("api/companies")]
     [ApiController]
-    public class CompaniesController : ControllerBase
+    [ApiExplorerSettings(GroupName = "v1")]
+    public class CompaniesController : ApiControllerBase
     {
         private readonly IServiceManager _service;
 
@@ -21,20 +24,28 @@ namespace CompanyEmployees.Controllers
 
         [HttpGet]
         [Authorize]
+        [ProducesResponseType(200)]
         public async Task<IActionResult> GetCompanies()
         {
-            var companies = await _service.CompanyService.GetAllCompaniesAsync(false);
+            var baseResult = await _service.CompanyService.GetAllCompaniesAsync(false);
+            var companies = baseResult.GetResult<IEnumerable<CompanyDto>>();
             return Ok(companies);
         }
         [HttpGet("{id:guid}", Name = "CompanyById")]
         [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetCompany(Guid id)
         {
-            var company = await _service.CompanyService.GetCompanyAsync(id, false);
+            var baseResult = await _service.CompanyService.GetCompanyAsync(id, false);
+            if (!baseResult.Success)
+                return ProcessError(baseResult);
+            var company = baseResult.GetResult<CompanyDto>();
             return Ok(company);
         }
         [HttpPost]
         [ServiceFilter(typeof(ValidationFilterAttribute))]
+        [ProducesResponseType(201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(422)]
         public async Task<IActionResult> CreateCompany([FromBody] CompanyForCreationDto company)
         {
             var createdCompany = await _service.CompanyService.CreateCompanyAsync(company);

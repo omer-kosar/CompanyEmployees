@@ -44,6 +44,7 @@ builder.Services.ConfigureResponseCaching();
 
 builder.Services.ConfigureJWT(builder.Configuration);
 builder.Services.AddJwtConfiguration(builder.Configuration);
+builder.Services.ConfigureSwagger();
 
 var app = builder.Build();
 
@@ -62,6 +63,12 @@ app.UseCors("CorsPolicy");
 app.UseResponseCaching();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseSwagger();
+app.UseSwaggerUI(swaggerUI =>
+{
+    swaggerUI.SwaggerEndpoint("/swagger/v1/swagger.json", "Code Maze API v1");
+    swaggerUI.SwaggerEndpoint("/swagger/v2/swagger.json", "Code Maze API v2");
+});
 app.MapControllers();
 
 app.Run();
