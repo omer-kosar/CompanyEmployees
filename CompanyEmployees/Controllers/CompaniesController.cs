@@ -1,7 +1,11 @@
-﻿using CompanyEmployees.ActionFilters;
+﻿using Application.Commands.Company;
+using Application.Notifications.Company;
+using Application.Queries.Company;
+using CompanyEmployees.ActionFilters;
 using CompanyEmployees.Extensions;
 using CompanyEmployees.ModelBinders;
 using Entities.Responses;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service.Contracts;
@@ -16,40 +20,41 @@ namespace CompanyEmployees.Controllers
     public class CompaniesController : ApiControllerBase
     {
         private readonly IServiceManager _service;
-
-        public CompaniesController(IServiceManager service)
+        private readonly ISender _sender;
+        private readonly IPublisher _publisher;
+        public CompaniesController(IServiceManager service, ISender sender, IPublisher publisher)
         {
             _service = service;
+            _sender = sender;
+            _publisher = publisher;
         }
 
         [HttpGet]
-        [Authorize]
+        //[Authorize]
         [ProducesResponseType(200)]
         public async Task<IActionResult> GetCompanies()
         {
-            var baseResult = await _service.CompanyService.GetAllCompaniesAsync(false);
-            var companies = baseResult.GetResult<IEnumerable<CompanyDto>>();
+            var companies = await _sender.Send(new GetCompaniesQuery(false));
             return Ok(companies);
         }
         [HttpGet("{id:guid}", Name = "CompanyById")]
         [ResponseCache(Duration = 60)]
         public async Task<IActionResult> GetCompany(Guid id)
         {
-            var baseResult = await _service.CompanyService.GetCompanyAsync(id, false);
-            if (!baseResult.Success)
-                return ProcessError(baseResult);
-            var company = baseResult.GetResult<CompanyDto>();
+            var company = await _sender.Send(new GetCompanyQuery(id, false));
             return Ok(company);
         }
         [HttpPost]
-        [ServiceFilter(typeof(ValidationFilterAttribute))]
+        //[ServiceFilter(typeof(ValidationFilterAttribute))]
         [ProducesResponseType(201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(422)]
         public async Task<IActionResult> CreateCompany([FromBody] CompanyForCreationDto company)
         {
-            var createdCompany = await _service.CompanyService.CreateCompanyAsync(company);
-            return CreatedAtRoute("CompanyById", new { id = createdCompany.Id }, createdCompany);
+            if (company is null)
+                return BadRequest("Company object is null");
+            var createdCompanyDto = await _sender.Send(new CreateCompanyCommand(company));
+            return CreatedAtRoute("CompanyById", new { id = createdCompanyDto.Id }, createdCompanyDto);
         }
         [HttpGet("collection/({ids})", Name = "CompanyCollection")]
         public async Task<IActionResult> GetCompanyCollection([ModelBinder(BinderType = typeof(ArrayModelBinder))] IEnumerable<Guid> ids)
@@ -66,14 +71,16 @@ namespace CompanyEmployees.Controllers
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> DeleteCompany(Guid id)
         {
-            await _service.CompanyService.DeleteCompanyAsync(id, false);
+            await _publisher.Publish(new CompanyDeletedNotification(id, false));
             return NoContent();
         }
         [HttpPut("{id:guid}")]
         [ServiceFilter(typeof(ValidationFilterAttribute))]
         public async Task<IActionResult> UpdateCompany(Guid id, [FromBody] CompanyForUpdateDto company)
         {
-            await _service.CompanyService.UpdateCompanyAsync(id, company, true);
+            if (company is null)
+                return BadRequest("Company object is null");
+            await _sender.Send(new UpdateCompanyCommand(id, company, true));
             return NoContent();
         }
     }

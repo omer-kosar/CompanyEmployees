@@ -11,6 +11,6 @@ namespace Shared.DataTransferObjects
         public string Name { get; set; }
         public string Adress { get; set; }
         public string Country { get; set; }
-        public IEnumerable<EmployeeForCreationDto> Employees { get; set; }
+        public IEnumerable<EmployeeForCreationDto>? Employees { get; set; }
     }
 }

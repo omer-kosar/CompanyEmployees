@@ -3,6 +3,7 @@ using Entities.ErrorModel;
 using Entities.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using System.Net;
+using System.Text.Json;
 
 namespace CompanyEmployees.Extensions
 {
@@ -23,16 +24,24 @@ namespace CompanyEmployees.Extensions
                         {
                             NotFoundException => StatusCodes.Status404NotFound,
                             BadRequestException => StatusCodes.Status400BadRequest,
-                            _ => StatusCodes.Status500InternalServerError
+                            ValidationAppException => StatusCodes.Status422UnprocessableEntity,
+                            _ => StatusCodes.Status500InternalServerError,
                         };
 
                         logger.LogError($"Something went wrong: {contextFeature.Error}");
+                        if (contextFeature.Error is ValidationAppException exception)
+                        {
+                            await context.Response.WriteAsync(JsonSerializer.Serialize(new { exception.Errors }));
+                        }
+                        else
+                        {
+                            await context.Response.WriteAsync(new ErrorDetail()
+                            {
+                                StatusCode = context.Response.StatusCode,
+                                Message = contextFeature?.Error.Message
+                            }.ToString());
+                        }
                     }
-                    await context.Response.WriteAsync(new ErrorDetail()
-                    {
-                        StatusCode = context.Response.StatusCode,
-                        Message = contextFeature?.Error.Message
-                    }.ToString());
                 });
             });
         }
